@@ -16,8 +16,71 @@ export default function Home() {
         fromElement: true,
         showOffsets: true,
         noticeOnUnload: true,
-        storageManager: false,
+        storageManager: true,
         plugins: ['grapesjs-preset-webpage'],
+        styleManager: {
+          sectors: [{
+            name: 'General',
+            open: false,
+            buildProps: ['float', 'display', 'position', 'top', 'right', 'left', 'bottom'],
+          },{
+            name: 'Dimension',
+            open: false,
+            buildProps: ['width', 'height', 'max-width', 'min-height', 'margin', 'padding'],
+          },{
+            name: 'Typography',
+            open: false,
+            buildProps: ['font-family', 'font-size', 'font-weight', 'letter-spacing', 'color', 'line-height', 'text-shadow'],
+            properties:[
+              { name: 'Font', property: 'font-family'},
+              { name: 'Weight', property: 'font-weight'},
+              { name:  'Font color', property: 'color'},
+              {
+                property: 'text-align',
+                type: 'radio',
+                defaults: 'left',
+                list: [
+                  { value : 'left', name : 'Left', className: 'fa fa-align-left'},
+                  { value : 'center', name : 'Center', className: 'fa fa-align-center' },
+                  { value : 'right', name : 'Right',  className: 'fa fa-align-right'},
+                  { value : 'justify', name : 'Justify',   className: 'fa fa-align-justify'}
+                ],
+              },{
+                property: 'text-decoration',
+                type: 'radio',
+                defaults: 'none',
+                list: [
+                  { value: 'none', name: 'None', className: 'fa fa-times'},
+                  { value: 'underline', name: 'underline', className: 'fa fa-underline' },
+                  { value: 'line-through', name: 'Line-through', className: 'fa fa-strikethrough'}
+                ],
+              },{
+                property: 'font-style',
+                type: 'radio',
+                defaults: 'normal',
+                list: [
+                  { value: 'normal', name: 'Normal', className: 'fa fa-font'},
+                  { value: 'italic', name: 'Italic', className: 'fa fa-italic'}
+                ],
+              },{
+                property: 'text-shadow',
+                properties: [
+                  { name: 'X position', property: 'text-shadow-h'},
+                  { name: 'Y position', property: 'text-shadow-v'},
+                  { name: 'Blur', property: 'text-shadow-blur'},
+                  { name: 'Color', property: 'text-shadow-color'}
+                ],
+            }],
+          },{
+            name: 'Decorations',
+            open: false,
+            buildProps: ['opacity', 'border-radius', 'border', 'box-shadow', 'background'],
+          },{
+            name: 'Extra',
+            open: false,
+            buildProps: ['transition', 'perspective', 'transform'],
+          }],
+        },
         deviceManager: {
           devices: [
             {
@@ -42,32 +105,8 @@ export default function Home() {
         panels: {
           defaults: [
             {
-              id: 'panel-devices',
-              el: '.panel__devices',
-              buttons: [
-                {
-                  id: 'device-desktop',
-                  command: 'set-device-desktop',
-                  className: 'fa fa-desktop',
-                  attributes: { title: 'Desktop' }
-                },
-                {
-                  id: 'device-tablet',
-                  command: 'set-device-tablet',
-                  className: 'fa fa-tablet',
-                  attributes: { title: 'Tablet' }
-                },
-                {
-                  id: 'device-mobile',
-                  command: 'set-device-mobile',
-                  className: 'fa fa-mobile',
-                  attributes: { title: 'Mobile' }
-                }
-              ]
-            },
-            {
-              id: 'panel-templates',
-              el: '.panel__templates',
+              id: 'panel-top',
+              el: '.panel__top',
               buttons: [
                 {
                   id: 'template-selector',
@@ -82,6 +121,64 @@ export default function Home() {
                   label: 'Export PDF',
                   attributes: { class: 'btn btn-success' },
                   active: false, // Ensure it's not active by default
+                },
+              ]
+            },
+            {
+              id: 'panel-actions',
+              el: '.panel__actions',
+              buttons: [
+                {
+                  id: 'view-components',
+                  className: 'fa fa-square',
+                  // attributes: { title: 'View components' },
+                  command: 'core:select-all-components', // Use built-in command
+                },
+                {
+                  id: 'preview-button',
+                  command: 'preview',
+                  className: 'fa fa-eye',
+                  attributes: { title: 'Preview' },
+                  active: false, // Ensure it's not active by default
+                },
+                {
+                  id: 'undo',
+                  className: 'fa fa-undo',
+                  command: 'core:undo', // Use built-in command
+                },
+                {
+                  id: 'redo',
+                  className: 'fa fa-redo',
+                  command: 'core:redo', // Use built-in command
+                },
+                {
+                  id: 'delete',
+                  className: 'fa fa-trash',
+                  command: 'core:component-delete',
+                },
+                {
+                  id: 'back-button',
+                  className: 'fa fa-arrow-circle-left btn-builder-new',
+                  attributes: { title: 'Back Home' },
+                  command: 'back-home',
+                },
+                {
+                  id: 'save-builder',
+                  className: 'fa fa-save btn-builder-new',
+                  attributes: { title: 'Save' },
+                  command: 'save',
+                },
+                {
+                  id: 'open-style-manager',
+                  className: 'fa fa-cog',
+                  attributes: { title: 'Open Style Manager' },
+                  command: 'open-style-manager',
+                },
+                {
+                  id: 'settings',
+                  className: 'fa fa-cog',
+                  // attributes: { title: 'Settings' },
+                  command: 'core:open-styles (opens new window)',
                 }
               ]
             }
@@ -137,6 +234,58 @@ export default function Home() {
         }
       });
 
+      e.Commands.add('preview', {
+        run(editor, sender) {
+          const canvas = editor.Canvas.getElement();
+          if (canvas.requestFullscreen) {
+            canvas.requestFullscreen();
+          } else if (canvas.mozRequestFullScreen) {
+            canvas.mozRequestFullScreen();
+          } else if (canvas.webkitRequestFullscreen) {
+            canvas.webkitRequestFullscreen();
+          } else if (canvas.msRequestFullscreen) {
+            canvas.msRequestFullscreen();
+          }
+        }
+      });
+
+      e.Commands.add('back-home', {
+        run(editor, sender) {
+          window.location.href = '/';
+        }
+      });
+
+      e.Commands.add('save', {
+        run(editor, sender) {
+          // Save logic here
+          alert("Save command executed!");
+        }
+      });
+
+      // Define a command to select all components including nested ones
+      e.Commands.add('select-all-components', {
+        run(editor, sender) {
+          const selectAllComponents = (component) => {
+            editor.select(component);
+            component.components().each(child => selectAllComponents(child));
+          };
+          
+          const wrapper = editor.DomComponents.getWrapper();
+          wrapper.components().each(component => selectAllComponents(component));
+        }
+      });
+
+      e.Commands.add('open-style-manager', {
+        run(editor, sender) {
+          const openSmBtn = editor.StyleManager;
+          if (openSmBtn) {
+            openSmBtn.set('active', true);
+          } else {
+            console.error('Style Manager button not found');
+          }
+        }
+      });
+
       setEditor(e);
     }
 
@@ -147,9 +296,13 @@ export default function Home() {
 
   return (
     <div>
-      <div className="panel__devices"></div>
-      <div className="panel__templates"></div>
-      <div id="example-editor" />
+      <div className="panel__top">
+        <div className="panel__templates"></div>
+        <div className="panel__actions gjs-pn-panel gjs-pn-options gjs-one-bg gjs-two-color">
+          <div className="gjs-pn-buttons"></div>
+        </div>
+      </div>
+      <div id="example-editor" style={{ height: '800px' }}></div>
     </div>
   );
 }

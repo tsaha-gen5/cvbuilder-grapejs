@@ -103,3 +103,33 @@ body {
 .btn-success:hover {
   background-color: #218838;
 }
+
+.panel__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.panel__templates {
+  flex: 1;
+}
+
+.panel__actions {
+  display: flex;
+  gap: 2px;
+}
+
+.gjs-pn-panel.gjs-pn-options.gjs-one-bg.gjs-two-color {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 5px;
+}
+
+.gjs-pn-buttons {
+  display: flex;
+  gap: 2px;
+}
+
+
