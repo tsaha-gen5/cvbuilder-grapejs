@@ -26,7 +26,7 @@ body {
     rgb(var(--background-start-rgb));
 }
 
-.gjs-resizer-h-tc, .gjs-resizer-h-bc{
+.gjs-resizer-h-tc, .gjs-resizer-h-bc {
   width: 15px !important;
   height: 15px !important;
   background-color: #3b97e3 !important;
@@ -41,4 +41,65 @@ body {
   top: -11px;
   left: -1.5px;
   font-style: initial;
+}
+
+.modal-row {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.modal-column {
+  flex: 33.33%;
+  max-width: 33.33%;
+  padding: 10px;
+}
+
+.modal-column img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.modal-container {
+  text-align: center;
+}
+
+@media screen and (max-width: 800px) {
+  .modal-column {
+    flex: 50%;
+    max-width: 50%;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  .modal-column {
+    flex: 100%;
+    max-width: 100%;
+  }
+}
+/* Additional CSS for buttons */
+.btn-light {
+  background-color: #f8f9fa;
+  color: #000;
+  border: 1px solid #ccc;
+  padding: 5px 10px;
+  margin: 5px;
+  cursor: pointer;
+}
+
+.btn-light:hover {
+  background-color: #e2e6ea;
+}
+
+.btn-success {
+  background-color: #28a745;
+  color: #fff;
+  border: 1px solid #28a745;
+  padding: 5px 10px;
+  margin: 5px;
+  cursor: pointer;
+}
+
+.btn-success:hover {
+  background-color: #218838;
 }
