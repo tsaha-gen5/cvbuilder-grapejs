@@ -105,31 +105,45 @@ body {
 }
 
 .panel__top {
-  display: flex;
-  justify-content: space-between;
+  display: inline;
+  justify-content: center;
   align-items: center;
-  width: 100%;
-}
-
-.panel__templates {
-  flex: 1;
+  width: 80%;
+  padding: 10px;
 }
 
 .panel__actions {
   display: flex;
-  gap: 2px;
+  justify-content: center;
+  align-items: center;
+  gap: 10px; /* Adjust spacing between buttons */
 }
+
+.custom-template-selector, .btn.btn-success {
+  margin: 0; /* Reset margin */
+  float: right;}
 
 .gjs-pn-panel.gjs-pn-options.gjs-one-bg.gjs-two-color {
   display: flex;
-  justify-content: flex-end;
+  margin-right: 150px;
+  justify-content: center; /* Center items in this container */
   align-items: center;
-  padding: 5px;
+  padding: 2px;
 }
 
 .gjs-pn-buttons {
+  float: right;
   display: flex;
-  gap: 2px;
+  gap: 1px;
 }
 
+.gjs-devices-c .gjs-device-label .gjs-pn-devices-c {
+  display: none;
+}
 
+.centered-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 2px; 
+}

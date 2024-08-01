@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react";
 import "grapesjs/dist/css/grapes.min.css";
 import GrapesJS from "grapesjs";
 import "grapesjs-preset-webpage";
+// import "./styles.css"; // Ensure this is imported
 
 export default function Home() {
   const [editor, setEditor] = useState(null);
@@ -18,71 +19,9 @@ export default function Home() {
         noticeOnUnload: true,
         storageManager: true,
         plugins: ['grapesjs-preset-webpage'],
-        styleManager: {
-          sectors: [{
-            name: 'General',
-            open: false,
-            buildProps: ['float', 'display', 'position', 'top', 'right', 'left', 'bottom'],
-          },{
-            name: 'Dimension',
-            open: false,
-            buildProps: ['width', 'height', 'max-width', 'min-height', 'margin', 'padding'],
-          },{
-            name: 'Typography',
-            open: false,
-            buildProps: ['font-family', 'font-size', 'font-weight', 'letter-spacing', 'color', 'line-height', 'text-shadow'],
-            properties:[
-              { name: 'Font', property: 'font-family'},
-              { name: 'Weight', property: 'font-weight'},
-              { name:  'Font color', property: 'color'},
-              {
-                property: 'text-align',
-                type: 'radio',
-                defaults: 'left',
-                list: [
-                  { value : 'left', name : 'Left', className: 'fa fa-align-left'},
-                  { value : 'center', name : 'Center', className: 'fa fa-align-center' },
-                  { value : 'right', name : 'Right',  className: 'fa fa-align-right'},
-                  { value : 'justify', name : 'Justify',   className: 'fa fa-align-justify'}
-                ],
-              },{
-                property: 'text-decoration',
-                type: 'radio',
-                defaults: 'none',
-                list: [
-                  { value: 'none', name: 'None', className: 'fa fa-times'},
-                  { value: 'underline', name: 'underline', className: 'fa fa-underline' },
-                  { value: 'line-through', name: 'Line-through', className: 'fa fa-strikethrough'}
-                ],
-              },{
-                property: 'font-style',
-                type: 'radio',
-                defaults: 'normal',
-                list: [
-                  { value: 'normal', name: 'Normal', className: 'fa fa-font'},
-                  { value: 'italic', name: 'Italic', className: 'fa fa-italic'}
-                ],
-              },{
-                property: 'text-shadow',
-                properties: [
-                  { name: 'X position', property: 'text-shadow-h'},
-                  { name: 'Y position', property: 'text-shadow-v'},
-                  { name: 'Blur', property: 'text-shadow-blur'},
-                  { name: 'Color', property: 'text-shadow-color'}
-                ],
-            }],
-          },{
-            name: 'Decorations',
-            open: false,
-            buildProps: ['opacity', 'border-radius', 'border', 'box-shadow', 'background'],
-          },{
-            name: 'Extra',
-            open: false,
-            buildProps: ['transition', 'perspective', 'transform'],
-          }],
-        },
-        deviceManager: {
-          devices: [
+        styleManager: {clearProperties: true},
+        deviceManager: {                      
+            devices: [
             {
               id: 'desktop',
               name: 'Desktop',
@@ -100,7 +39,7 @@ export default function Home() {
               width: '320px', // width for mobile
               widthMedia: '480px', // media query width for mobile
             }
-          ]
+          ],
         },
         panels: {
           defaults: [
@@ -131,14 +70,13 @@ export default function Home() {
                 {
                   id: 'view-components',
                   className: 'fa fa-square',
-                  // attributes: { title: 'View components' },
-                  command: 'core:select-all-components', // Use built-in command
+                  command: 'core:component-outline',
+                  active:false // Use built-in command
                 },
                 {
                   id: 'preview-button',
-                  command: 'preview',
+                  command: 'core:preview',
                   className: 'fa fa-eye',
-                  attributes: { title: 'Preview' },
                   active: false, // Ensure it's not active by default
                 },
                 {
@@ -148,7 +86,7 @@ export default function Home() {
                 },
                 {
                   id: 'redo',
-                  className: 'fa fa-redo',
+                  className: 'fa fa-repeat',
                   command: 'core:redo', // Use built-in command
                 },
                 {
@@ -169,16 +107,9 @@ export default function Home() {
                   command: 'save',
                 },
                 {
-                  id: 'open-style-manager',
-                  className: 'fa fa-cog',
-                  attributes: { title: 'Open Style Manager' },
-                  command: 'open-style-manager',
-                },
-                {
                   id: 'settings',
                   className: 'fa fa-cog',
-                  // attributes: { title: 'Settings' },
-                  command: 'core:open-styles (opens new window)',
+                  command: 'core:open-styles',
                 }
               ]
             }
@@ -234,21 +165,6 @@ export default function Home() {
         }
       });
 
-      e.Commands.add('preview', {
-        run(editor, sender) {
-          const canvas = editor.Canvas.getElement();
-          if (canvas.requestFullscreen) {
-            canvas.requestFullscreen();
-          } else if (canvas.mozRequestFullScreen) {
-            canvas.mozRequestFullScreen();
-          } else if (canvas.webkitRequestFullscreen) {
-            canvas.webkitRequestFullscreen();
-          } else if (canvas.msRequestFullscreen) {
-            canvas.msRequestFullscreen();
-          }
-        }
-      });
-
       e.Commands.add('back-home', {
         run(editor, sender) {
           window.location.href = '/';
@@ -257,32 +173,7 @@ export default function Home() {
 
       e.Commands.add('save', {
         run(editor, sender) {
-          // Save logic here
           alert("Save command executed!");
-        }
-      });
-
-      // Define a command to select all components including nested ones
-      e.Commands.add('select-all-components', {
-        run(editor, sender) {
-          const selectAllComponents = (component) => {
-            editor.select(component);
-            component.components().each(child => selectAllComponents(child));
-          };
-          
-          const wrapper = editor.DomComponents.getWrapper();
-          wrapper.components().each(component => selectAllComponents(component));
-        }
-      });
-
-      e.Commands.add('open-style-manager', {
-        run(editor, sender) {
-          const openSmBtn = editor.StyleManager;
-          if (openSmBtn) {
-            openSmBtn.set('active', true);
-          } else {
-            console.error('Style Manager button not found');
-          }
         }
       });
 
@@ -297,7 +188,6 @@ export default function Home() {
   return (
     <div>
       <div className="panel__top">
-        <div className="panel__templates"></div>
         <div className="panel__actions gjs-pn-panel gjs-pn-options gjs-one-bg gjs-two-color">
           <div className="gjs-pn-buttons"></div>
         </div>
