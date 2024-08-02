@@ -41,8 +41,6 @@ export default function Home() {
   }
 
   useEffect(() => {
-    getTemplateIdFromQueryParam();
-    getResumeIdFromQueryParam();
     const tokenDetect = getTokenFromQueryParam();
     if (!tokenDetect) {
      testGetToken();
@@ -53,6 +51,8 @@ export default function Home() {
     }
     setIsTokenValid(true);
     
+    getTemplateIdFromQueryParam();
+    getResumeIdFromQueryParam();
 
   }, [token]);
 
@@ -261,7 +261,7 @@ export default function Home() {
     return () => {
       editor?.destroy();
     };
-  }, [editor, templateId,resumeId]);
+  }, [editor, templateId,resumeId,isTokenValid]);
 
   return (
   
