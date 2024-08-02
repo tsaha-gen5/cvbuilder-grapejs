@@ -1,0 +1,11 @@
+
+
+.gjs-cv-canvas {
+    background: #1b1b1b !important;
+  }
+  
+.gjs-cv-canvas .gjs-frame {
+    padding: 20px 0 !important;
+    margin: auto !important;
+    max-width: 800px !important;
+  }

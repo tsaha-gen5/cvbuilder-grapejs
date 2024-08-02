@@ -6,14 +6,61 @@ import "grapesjs/dist/css/grapes.min.css";
 import GrapesJS from "grapesjs";
 import "grapesjs-preset-webpage";
 import useResumeAPI from '@/hooks/useResumeAPI';  // Ensure this path is correct
+import { testGetToken } from '@/utils/auth';
+import { getCookie, setCookie } from '@/utils/cookies';
 
 export default function Home() {
   const [editor, setEditor] = useState(null);
+  const [token, setToken] = useState('');
+  const [templateId, setTemplateId] = useState(null);
+  const [resumeId, setResumeId] = useState(null);
+  const [isTokenValid, setIsTokenValid] = useState(false);
   const { getTemplates, getTemplateById, getResumeUser, setResumeUser, setTemplate } = useResumeAPI();
+  
+  function getTokenFromQueryParam() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    setCookie('access_token', token, 1); // Save access token as a cookie
+    return token;
+  }
+
+  function getTemplateIdFromQueryParam () {
+    const urlParams = new URLSearchParams(window.location.search);    
+    if(urlParams.get('template_id') === null) {      return null;     }
+    const templateId_ = urlParams.get('template_id');
+    setTemplateId(templateId_);
+    console.log("templateId", templateId_);
+    return true;
+  }
+
+  function getResumeIdFromQueryParam () {
+    const urlParams = new URLSearchParams(window.location.search);
+    if(urlParams.get('resume_id') === null) {      return null;     }
+    setResumeId(urlParams.get('resume_id'));
+    return true;
+  }
+
+  useEffect(() => {
+    getTemplateIdFromQueryParam();
+    getResumeIdFromQueryParam();
+    const tokenDetect = getTokenFromQueryParam();
+    if (!tokenDetect) {
+     testGetToken();
+     setToken(localStorage.getItem('access_token'));
+     
+    } else {
+      setToken(tokenDetect);
+    }
+    setIsTokenValid(true);
+    
+
+  }, [token]);
+
   const userId = 1; // Replace with actual user ID
 
   useEffect(() => {
-    if (!editor) {
+    if (!editor && (templateId !== null || resumeId !== null)) {
+      
       const e = GrapesJS.init({
         container: "#example-editor",
         fromElement: true,
@@ -148,7 +195,6 @@ export default function Home() {
                   if (selectedTemplate) {
                     editor.setComponents(selectedTemplate.content);
                     editor.setStyle(selectedTemplate.style);
-                    setTemplate(templateId, selectedTemplate); // Save selected template to API
                     modal.close();
                   }
                 }).catch(error => console.error('Error fetching template by ID:', error));
@@ -157,6 +203,7 @@ export default function Home() {
           }).catch(error => console.error('Error fetching templates:', error));
         }
       });
+      
 
       e.Commands.add('export-pdf', {
         run(editor, sender) {
@@ -189,19 +236,42 @@ export default function Home() {
       setEditor(e);
     }
 
+
+    if(templateId !== null) {
+      getTemplateById(templateId).then(selectedTemplate => {
+        if (selectedTemplate) {
+          console.log("selectedTemplate", selectedTemplate);
+          editor.setComponents(selectedTemplate.content);
+          editor.setStyle(selectedTemplate.style);
+        }
+      }).catch(error => console.error('Error fetching template by ID:', error));
+
+    }else if(resumeId !== null) {
+      
+      getResumeUser(resumeId).then(resume => {
+        if (resume) {
+          editor.setComponents(resume.content);
+          editor.setStyle(resume.style);
+        }
+      }).catch(error => console.error('Error fetching resume by ID:', error));
+
+    }
+
+
     return () => {
       editor?.destroy();
     };
-  }, [editor, getTemplates, getTemplateById, setResumeUser, setTemplate]);
+  }, [editor, templateId,resumeId]);
 
   return (
+  
     <div>
       <div className="panel__top">
         <div className="panel__actions gjs-pn-panel gjs-pn-options gjs-one-bg gjs-two-color">
           <div className="gjs-pn-buttons"></div>
         </div>
       </div>
-      <div id="example-editor" style={{ height: '800px' }}></div>
+      <div id="example-editor" style={{ minHeight: '100vh' }}></div>
     </div>
   );
 }

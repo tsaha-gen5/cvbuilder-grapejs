@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { apiConfigURLS } from '@/utils/vars';
-import { refreshAuthToken } from '@/utils/auth';
+import { getCookie, setCookie } from '@/utils/cookies';
 
 interface Template {
   id: number;
@@ -29,7 +29,7 @@ interface UseResumeAPIReturnType {
 
 const useResumeAPI = (): UseResumeAPIReturnType => {
   const makeRequest = useCallback(async (url: string, options: any) => {
-    const token = await refreshAuthToken();
+    const token = getCookie('access_token');
     if (!token) {
       console.error('No token available.');
       return null;

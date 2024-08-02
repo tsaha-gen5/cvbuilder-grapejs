@@ -1,31 +1,37 @@
 import { getCookie, setCookie } from '@/utils/cookies';
+import { apiConfigURLS } from '@/utils/vars';
 
-export const refreshAuthToken = async (): Promise<string | null> => {
-  // Initially use the hardcoded token for the refresh request
-  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBhZG1pbi5jb20iLCJleHAiOjE3MjMyMDgxMzZ9.Xa1mqGSYGk7VeFE9wdgcCJKSzigpRN7jYCQhATDFlOg";
+export const testGetToken = async (): Promise<string | null> => {
+  
+  const user = "admin@admin.com";
+  const password = "admin@123";
+  const grantType = "password"; // Assuming grant_type is needed
 
   try {
-    const response = await fetch('https://api.futurandco.tv/refresh', {
+    const body = new URLSearchParams();
+    body.append('username', user);
+    body.append('password', password);
+
+    const response = await fetch(`${apiConfigURLS.apiURL}/token`, {
       method: 'POST',
       headers: {
-        'accept': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: '',
+      body: body.toString(),
     });
 
     if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Server responded with:', errorData);
       throw new Error('Failed to refresh token');
     }
 
     const data = await response.json();
     const newAccessToken = data.access_token;
-    const newRefreshToken = data.refresh_token;
 
-    if (newAccessToken && newRefreshToken) {
+    if (newAccessToken) {
       setCookie('access_token', newAccessToken, 1); // Save access token as a cookie
-      localStorage.setItem('access_token', newAccessToken); // Save access token in localStorage
-      localStorage.setItem('refresh_token', newRefreshToken); // Save refresh token in localStorage
       return newAccessToken;
     }
 
