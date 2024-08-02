@@ -1,14 +1,16 @@
 // @ts-nocheck
-"use client"; // This is a client component
+"use client";
 
 import React, { useEffect, useState } from "react";
 import "grapesjs/dist/css/grapes.min.css";
 import GrapesJS from "grapesjs";
 import "grapesjs-preset-webpage";
-// import "./styles.css"; // Ensure this is imported
+import useResumeAPI from '@/hooks/useResumeAPI';  // Ensure this path is correct
 
 export default function Home() {
   const [editor, setEditor] = useState(null);
+  const { getTemplates, getTemplateById, getResumeUser, setResumeUser, setTemplate } = useResumeAPI();
+  const userId = 1; // Replace with actual user ID
 
   useEffect(() => {
     if (!editor) {
@@ -20,7 +22,7 @@ export default function Home() {
         storageManager: true,
         plugins: ['grapesjs-preset-webpage'],
         styleManager: {clearProperties: true},
-        deviceManager: {                      
+        deviceManager: {
             devices: [
             {
               id: 'desktop',
@@ -52,14 +54,14 @@ export default function Home() {
                   command: 'select-template',
                   label: 'Select Template',
                   attributes: { class: 'custom-template-selector' },
-                  active: false, // Ensure it's not active by default
+                  active: false,
                 },
                 {
                   id: 'export-pdf',
                   command: 'export-pdf',
                   label: 'Export PDF',
                   attributes: { class: 'btn btn-success' },
-                  active: false, // Ensure it's not active by default
+                  active: false,
                 },
               ]
             },
@@ -71,23 +73,23 @@ export default function Home() {
                   id: 'view-components',
                   className: 'fa fa-square',
                   command: 'core:component-outline',
-                  active:false // Use built-in command
+                  active:false
                 },
                 {
                   id: 'preview-button',
                   command: 'core:preview',
                   className: 'fa fa-eye',
-                  active: false, // Ensure it's not active by default
+                  active: false,
                 },
                 {
                   id: 'undo',
                   className: 'fa fa-undo',
-                  command: 'core:undo', // Use built-in command
+                  command: 'core:undo',
                 },
                 {
                   id: 'redo',
                   className: 'fa fa-repeat',
-                  command: 'core:redo', // Use built-in command
+                  command: 'core:redo',
                 },
                 {
                   id: 'delete',
@@ -121,35 +123,38 @@ export default function Home() {
         run(editor, sender) {
           const modal = editor.Modal;
           modal.setTitle('Select a Template');
-          modal.setContent(`
-            <div class="modal-row">
-              ${[...Array(9).keys()].map(i => `
-                <div class="modal-column">
-                  <div class="card card-template" data-templateid="${i + 1}">
-                    <img src="/images/templates/template${i + 1}.webp" alt="CV Template ${i + 1}" />
-                    <div class="modal-container">
-                      <h4><b>Resume ${i + 1}</b></h4>
+          
+          getTemplates().then(templates => {
+            modal.setContent(`
+              <div class="modal-row">
+                ${templates.map(template => `
+                  <div class="modal-column">
+                    <div class="card card-template" data-templateid="${template.id}">
+                      <img src="${template.photo}" alt="${template.title}" />
+                      <div class="modal-container">
+                        <h4><b>${template.title}</b></h4>
+                      </div>
                     </div>
                   </div>
-                </div>
-              `).join('')}
-            </div>
-          `);
-          modal.open();
+                `).join('')}
+              </div>
+            `);
+            modal.open();
 
-          document.querySelectorAll('.card-template').forEach(card => {
-            card.addEventListener('click', () => {
-              const templateId = card.getAttribute('data-templateid');
-              fetch(`/modelscv/template${templateId}.json`)
-                .then(response => response.json())
-                .then(data => {
-                  editor.setComponents(data.content);
-                  editor.setStyle(data.style);
-                  modal.close();
-                })
-                .catch(error => console.error('Error fetching the JSON file:', error));
+            document.querySelectorAll('.card-template').forEach(card => {
+              card.addEventListener('click', () => {
+                const templateId = card.getAttribute('data-templateid');
+                getTemplateById(templateId).then(selectedTemplate => {
+                  if (selectedTemplate) {
+                    editor.setComponents(selectedTemplate.content);
+                    editor.setStyle(selectedTemplate.style);
+                    setTemplate(templateId, selectedTemplate); // Save selected template to API
+                    modal.close();
+                  }
+                }).catch(error => console.error('Error fetching template by ID:', error));
+              });
             });
-          });
+          }).catch(error => console.error('Error fetching templates:', error));
         }
       });
 
@@ -173,7 +178,11 @@ export default function Home() {
 
       e.Commands.add('save', {
         run(editor, sender) {
-          alert("Save command executed!");
+          const resumeContent = editor.getComponents();
+          const resumeStyle = editor.getStyle();
+          setResumeUser(userId, { resume: JSON.stringify({ content: resumeContent, style: resumeStyle }) })
+            .then(() => alert("Resume saved successfully!"))
+            .catch(error => console.error('Error saving resume:', error));
         }
       });
 
@@ -181,9 +190,9 @@ export default function Home() {
     }
 
     return () => {
-      editor?.destroy(); // Cleanup function to destroy editor instance on unmount
+      editor?.destroy();
     };
-  }, [editor]);
+  }, [editor, getTemplates, getTemplateById, setResumeUser, setTemplate]);
 
   return (
     <div>
