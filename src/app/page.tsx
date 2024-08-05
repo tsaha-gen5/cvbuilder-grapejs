@@ -15,8 +15,8 @@ export default function Home() {
   const [templateId, setTemplateId] = useState(null);
   const [resumeId, setResumeId] = useState(null);
   const [isTokenValid, setIsTokenValid] = useState(false);
-  const { getTemplates, getTemplateById, getResumeUser, setResumeUser, setTemplate } = useResumeAPI();
-  
+  const { getTemplates, getTemplateById, getResumeUser, createResume, updateResume, getAccountData, setTemplate, getResumeID } = useResumeAPI();
+
   function getTokenFromQueryParam() {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
@@ -24,43 +24,41 @@ export default function Home() {
     return token;
   }
 
-  function getTemplateIdFromQueryParam () {
-    const urlParams = new URLSearchParams(window.location.search);    
-    if(urlParams.get('template_id') === null) {      return null;     }
+  function getTemplateIdFromQueryParam() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('template_id') === null) { return null; }
     const templateId_ = urlParams.get('template_id');
     setTemplateId(templateId_);
     console.log("templateId", templateId_);
     return true;
   }
 
-  function getResumeIdFromQueryParam () {
+  function getResumeIdFromQueryParam() {
     const urlParams = new URLSearchParams(window.location.search);
-    if(urlParams.get('resume_id') === null) {      return null;     }
-    setResumeId(urlParams.get('resume_id'));
+    if (urlParams.get('resume_id') === null) { return null; }
+    const resumeId_ = urlParams.get('resume_id');
+    setResumeId(resumeId_);
+    sessionStorage.setItem('resume_id', resumeId_);
     return true;
   }
 
   useEffect(() => {
     const tokenDetect = getTokenFromQueryParam();
     if (!tokenDetect) {
-     testGetToken();
-     setToken(localStorage.getItem('access_token'));
-     
+      testGetToken();
+      setToken(localStorage.getItem('access_token'));
     } else {
       setToken(tokenDetect);
     }
     setIsTokenValid(true);
-    
+
     getTemplateIdFromQueryParam();
     getResumeIdFromQueryParam();
 
   }, [token]);
 
-  const userId = 1; // Replace with actual user ID
-
   useEffect(() => {
-    if (!editor && (templateId !== null || resumeId !== null)) {
-      
+    if (!editor) {
       const e = GrapesJS.init({
         container: "#example-editor",
         fromElement: true,
@@ -68,9 +66,9 @@ export default function Home() {
         noticeOnUnload: true,
         storageManager: true,
         plugins: ['grapesjs-preset-webpage'],
-        styleManager: {clearProperties: true},
+        styleManager: { clearProperties: true },
         deviceManager: {
-            devices: [
+          devices: [
             {
               id: 'desktop',
               name: 'Desktop',
@@ -120,7 +118,7 @@ export default function Home() {
                   id: 'view-components',
                   className: 'fa fa-square',
                   command: 'core:component-outline',
-                  active:false
+                  active: false
                 },
                 {
                   id: 'preview-button',
@@ -170,7 +168,7 @@ export default function Home() {
         run(editor, sender) {
           const modal = editor.Modal;
           modal.setTitle('Select a Template');
-          
+
           getTemplates().then(templates => {
             modal.setContent(`
               <div class="modal-row">
@@ -196,6 +194,9 @@ export default function Home() {
                     editor.setComponents(selectedTemplate.content);
                     editor.setStyle(selectedTemplate.style);
                     modal.close();
+                    // Reinitialize resumeId when template changes
+                    sessionStorage.removeItem('resume_id');
+                    setResumeId(null);
                   }
                 }).catch(error => console.error('Error fetching template by ID:', error));
               });
@@ -203,7 +204,6 @@ export default function Home() {
           }).catch(error => console.error('Error fetching templates:', error));
         }
       });
-      
 
       e.Commands.add('export-pdf', {
         run(editor, sender) {
@@ -225,19 +225,40 @@ export default function Home() {
 
       e.Commands.add('save', {
         run(editor, sender) {
-          const resumeContent = editor.getComponents();
-          const resumeStyle = editor.getStyle();
-          setResumeUser(userId, { resume: JSON.stringify({ content: resumeContent, style: resumeStyle }) })
-            .then(() => alert("Resume saved successfully!"))
-            .catch(error => console.error('Error saving resume:', error));
+          const resumeContent = editor.getHtml();  // Adjusted to get HTML content
+          const resumeStyle = editor.getCss();  // Adjusted to get CSS style
+
+          getAccountData().then(accountData => {
+            const userId = accountData.user_id;
+            const savedResumeId = sessionStorage.getItem('resume_id');
+            
+            if (savedResumeId) {
+              // Update existing resume
+              updateResume({ user_id: userId, content: resumeContent, style: resumeStyle, title: 'Updated Resume', description: 'Updated resume', resume_id: savedResumeId })
+                .then(() => alert("Resume updated successfully!"))
+                .catch(error => console.error('Error updating resume:', error));
+            } else {
+              // Create new resume
+              createResume({ user_id: userId, content: resumeContent, style: resumeStyle, title: 'New Resume', description: 'A new resume', template_id: templateId })
+                .then(response => {
+                  alert("Resume created successfully!");
+                  // Save the new resume_id to session storage
+                  const newResumeId = response.id;
+                  sessionStorage.setItem('resume_id', newResumeId);
+                  setResumeId(newResumeId);
+                })
+                .catch(error => console.error('Error creating resume:', error));
+            }
+          }).catch(error => console.error('Error fetching account data:', error));
         }
       });
 
       setEditor(e);
     }
+  }, []);
 
-
-    if(templateId !== null) {
+  useEffect(() => {
+    if (editor && templateId !== null && resumeId === null) {
       getTemplateById(templateId).then(selectedTemplate => {
         if (selectedTemplate) {
           console.log("selectedTemplate", selectedTemplate);
@@ -246,25 +267,30 @@ export default function Home() {
         }
       }).catch(error => console.error('Error fetching template by ID:', error));
 
-    }else if(resumeId !== null) {
-      
-      getResumeUser(resumeId).then(resume => {
+    } else if (editor && templateId === null && resumeId !== null) {
+      sessionStorage.setItem('resume_id', resumeId);
+      getResumeID(resumeId).then(resume => {
         if (resume) {
           editor.setComponents(resume.content);
           editor.setStyle(resume.style);
         }
       }).catch(error => console.error('Error fetching resume by ID:', error));
+    } 
+    else if (editor && templateId === null && resumeId === null) {
+      // Choose default template if nothing is present in the header
+      setResumeId(null);
+      getTemplates().then(templates => {
+        const defaultTemplate = templates[0];
+        console.log("defaultTemplate", defaultTemplate);
 
+        setTemplateId(defaultTemplate.id);
+        editor.setComponents(defaultTemplate.content);
+        editor.setStyle(defaultTemplate.style);
+      }).catch(error => console.error('Error fetching templates:', error));
     }
-
-
-    return () => {
-      editor?.destroy();
-    };
-  }, [editor, templateId,resumeId,isTokenValid]);
+  }, [editor, templateId, resumeId]);
 
   return (
-  
     <div>
       <div className="panel__top">
         <div className="panel__actions gjs-pn-panel gjs-pn-options gjs-one-bg gjs-two-color">

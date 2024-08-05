@@ -13,6 +13,17 @@ interface Template {
   updated_at: string;
 }
 
+interface UserResume {
+  name: string;
+  content: string;
+  style: string;
+  title: string;
+  description: string;
+  photo: string;
+  user_id: number;
+  template_id: number;
+}
+
 interface User {
   id: number;
   name: string;
@@ -23,8 +34,11 @@ interface UseResumeAPIReturnType {
   getTemplates: () => Promise<Template[]>;
   getTemplateById: (templateId: number) => Promise<Template>;
   getResumeUser: (userId: number) => Promise<User>;
-  setResumeUser: (userId: number, userData: Partial<User>) => Promise<any>;
   setTemplate: (templateId: number, templateData: Partial<Template>) => Promise<any>;
+  createResume: (userResume: Partial<UserResume>) => Promise<any>;
+  updateResume: (userResume: Partial<UserResume>) => Promise<any>;
+  getResumeID: (resumeId: number) => Promise<any>;
+  getAccountData: () => Promise<any>;
 }
 
 const useResumeAPI = (): UseResumeAPIReturnType => {
@@ -55,23 +69,16 @@ const useResumeAPI = (): UseResumeAPIReturnType => {
     }
   }, []);
 
+  const getAccountData = useCallback(() => {
+    return makeRequest(`${apiConfigURLS.apiURL}/account/`, { method: 'GET' });
+  }, [makeRequest]);
+
   const getTemplates = useCallback(() => {
     return makeRequest(`${apiConfigURLS.apiURL}/resume-template`, { method: 'GET' });
   }, [makeRequest]);
 
   const getTemplateById = useCallback((templateId: number) => {
     return makeRequest(`${apiConfigURLS.apiURL}/resume-template/${templateId}`, { method: 'GET' });
-  }, [makeRequest]);
-
-  const getResumeUser = useCallback((userId: number) => {
-    return makeRequest(`${apiConfigURLS.apiURL}/get-resume-user/${userId}`, { method: 'GET' });
-  }, [makeRequest]);
-
-  const setResumeUser = useCallback((userId: number, userData: Partial<User>) => {
-    return makeRequest(`${apiConfigURLS.apiURL}/set-resume-user/${userId}`, {
-      method: 'PUT',
-      body: JSON.stringify(userData),
-    });
   }, [makeRequest]);
 
   const setTemplate = useCallback((templateId: number, templateData: Partial<Template>) => {
@@ -81,7 +88,29 @@ const useResumeAPI = (): UseResumeAPIReturnType => {
     });
   }, [makeRequest]);
 
-  return { getTemplates, getTemplateById, getResumeUser, setResumeUser, setTemplate };
+  const getResumeUser = useCallback((userId: number) => {
+    return makeRequest(`${apiConfigURLS.apiURL}/resume/${userId}`, { method: 'GET' });
+  }, [makeRequest]);
+
+  const getResumeID = useCallback((resumeId: number) => {
+    return makeRequest(`${apiConfigURLS.apiURL}/resume/${resumeId}`, { method: 'GET' });
+  }, [makeRequest]);
+
+  const createResume = useCallback((userResume: Partial<UserResume>) => {
+    return makeRequest(`${apiConfigURLS.apiURL}/resume`, {
+      method: 'POST',
+      body: JSON.stringify(userResume),
+    });
+  }, [makeRequest]);
+
+  const updateResume = useCallback((userResume: Partial<UserResume>) => {
+    return makeRequest(`${apiConfigURLS.apiURL}/resume/`, {
+      method: 'PUT',
+      body: JSON.stringify(userResume),
+    });
+  }, [makeRequest]);
+
+  return { getTemplates, getTemplateById, getResumeUser, updateResume, setTemplate, createResume, getResumeID, getAccountData };
 };
 
 export default useResumeAPI;

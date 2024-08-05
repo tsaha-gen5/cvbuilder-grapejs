@@ -1,0 +1,31 @@
+@media print {
+    /* Ensure all elements are hidden initially */
+    body * {
+      visibility: hidden;
+    }
+  
+    /* Ensure the content we want to print is visible */
+    #cv-content, #cv-content * {
+      visibility: visible;
+    }
+  
+    /* Ensure the content is positioned correctly */
+    #cv-content {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+    }
+  
+    /* Ensure FontAwesome icons are visible */
+    .fa, .fas, .far, .fal, .fab {
+      visibility: visible;
+    }
+  
+    /* Explicitly retain colors and other styles */
+    * {
+      -webkit-print-color-adjust: exact !important; /* Chrome, Safari */
+      color-adjust: exact !important; /* Firefox */
+    }
+  }
+  

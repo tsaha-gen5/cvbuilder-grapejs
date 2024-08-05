@@ -1,24 +1,29 @@
-"use client";
-import React, { useEffect } from "react";
+"use client";  
+import React, { useEffect, useRef } from "react";
 
 const PDFPage: React.FC = () => {
+  const cvContentRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const exportHtml = sessionStorage.getItem('exportHtml');
     const exportCss = sessionStorage.getItem('exportCss');
 
-    if (exportHtml && exportCss) {
-      const cvContentElement = document.getElementById('cv-content');
-      if (cvContentElement) {
-        cvContentElement.innerHTML = exportHtml;
-      }
-
+    if (exportHtml && exportCss && cvContentRef.current) {
       const styleTag = document.createElement('style');
       styleTag.innerHTML = exportCss;
       document.head.appendChild(styleTag);
+
+      cvContentRef.current.innerHTML = exportHtml;
     }
   }, []);
 
   const handlePrint = () => {
+    const printStyleLink = document.createElement('link');
+    printStyleLink.rel = 'stylesheet';
+    printStyleLink.href = '/print.css'; // Ensure this path is correct
+    printStyleLink.media = 'print';
+    document.head.appendChild(printStyleLink);
+
     window.print();
   };
 
@@ -27,10 +32,12 @@ const PDFPage: React.FC = () => {
   };
 
   return (
-    <div style={{ textAlign: 'center' }}>
-      <button id="printButton" className="btn btn-success" onClick={handlePrint}>Print</button>
-      <button id="goBackButton" className="btn btn-light" onClick={handleGoBack}>Go Back</button>
-      <div id="cv-content" style={{ margin: '0 auto', width: '80%' }}></div>
+    <div className="pdf-page">
+      <div className="button-container">
+        <button id="printButton" className="btn btn-print" onClick={handlePrint}>Print Resume</button>
+        <button id="goBackButton" className="btn btn-back" onClick={handleGoBack}>Return to Home</button>
+      </div>
+      <div id="cv-content" className="cv-content" ref={cvContentRef}></div>
     </div>
   );
 };
