@@ -29,6 +29,7 @@ export default function Home() {
     if (urlParams.get('template_id') === null) { return null; }
     const templateId_ = urlParams.get('template_id');
     setTemplateId(templateId_);
+    sessionStorage.setItem('template_id', templateId_);
     console.log("templateId", templateId_);
     return true;
   }
@@ -188,8 +189,12 @@ export default function Home() {
 
             document.querySelectorAll('.card-template').forEach(card => {
               card.addEventListener('click', () => {
-                const templateId = card.getAttribute('data-templateid');
-                getTemplateById(templateId).then(selectedTemplate => {
+                const selectedTemplateId = card.getAttribute('data-templateid'); // Use local variable
+                setTemplateId(selectedTemplateId); // Update templateId state
+                sessionStorage.setItem('template_id', selectedTemplateId); // Save to sessionStorage
+                console.log("line193 : ", selectedTemplateId);
+
+                getTemplateById(selectedTemplateId).then(selectedTemplate => {
                   if (selectedTemplate) {
                     editor.setComponents(selectedTemplate.content);
                     editor.setStyle(selectedTemplate.style);
@@ -231,15 +236,18 @@ export default function Home() {
           getAccountData().then(accountData => {
             const userId = accountData.user_id;
             const savedResumeId = sessionStorage.getItem('resume_id');
+            const _templateId = sessionStorage.getItem('template_id');
+            console.log("templateId 234", _templateId);
             
             if (savedResumeId) {
               // Update existing resume
-              updateResume({ user_id: userId, content: resumeContent, style: resumeStyle, title: 'Updated Resume', description: 'Updated resume', resume_id: savedResumeId })
+              console.log("Line 244",savedResumeId);
+              updateResume({ content: resumeContent, style: resumeStyle, title: 'Updated Resume', description: 'Updated resume', resume_id: savedResumeId })
                 .then(() => alert("Resume updated successfully!"))
                 .catch(error => console.error('Error updating resume:', error));
             } else {
-              // Create new resume
-              createResume({ user_id: userId, content: resumeContent, style: resumeStyle, title: 'New Resume', description: 'A new resume', template_id: templateId })
+              // Create new resume              
+              createResume({ user_id: userId, content: resumeContent, style: resumeStyle, title: 'New Resume', description: 'A new resume', template_id: _templateId })
                 .then(response => {
                   alert("Resume created successfully!");
                   // Save the new resume_id to session storage
@@ -284,6 +292,7 @@ export default function Home() {
         console.log("defaultTemplate", defaultTemplate);
 
         setTemplateId(defaultTemplate.id);
+        sessionStorage.setItem('template_id', defaultTemplate.id); // Save to sessionStorage
         editor.setComponents(defaultTemplate.content);
         editor.setStyle(defaultTemplate.style);
       }).catch(error => console.error('Error fetching templates:', error));

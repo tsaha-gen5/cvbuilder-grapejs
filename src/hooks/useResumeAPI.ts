@@ -70,7 +70,7 @@ const useResumeAPI = (): UseResumeAPIReturnType => {
   }, []);
 
   const getAccountData = useCallback(() => {
-    return makeRequest(`${apiConfigURLS.apiURL}/account/`, { method: 'GET' });
+    return makeRequest(`${apiConfigURLS.apiURL}/my_account`, { method: 'GET' });
   }, [makeRequest]);
 
   const getTemplates = useCallback(() => {
@@ -104,7 +104,7 @@ const useResumeAPI = (): UseResumeAPIReturnType => {
   }, [makeRequest]);
 
   const updateResume = useCallback((userResume: Partial<UserResume>) => {
-    return makeRequest(`${apiConfigURLS.apiURL}/resume/`, {
+    return makeRequest(`${apiConfigURLS.apiURL}/resume`, {
       method: 'PUT',
       body: JSON.stringify(userResume),
     });
