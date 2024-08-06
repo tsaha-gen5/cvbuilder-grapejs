@@ -39,6 +39,7 @@ interface UseResumeAPIReturnType {
   updateResume: (userResume: Partial<UserResume>) => Promise<any>;
   getResumeID: (resumeId: number) => Promise<any>;
   getAccountData: () => Promise<any>;
+  prefillResume: (content: string, userAccount: object) => Promise<any>;
 }
 
 const useResumeAPI = (): UseResumeAPIReturnType => {
@@ -70,7 +71,7 @@ const useResumeAPI = (): UseResumeAPIReturnType => {
   }, []);
 
   const getAccountData = useCallback(() => {
-    return makeRequest(`${apiConfigURLS.apiURL}/my_account`, { method: 'GET' });
+    return makeRequest(`${apiConfigURLS.apiURL}/account/`, { method: 'GET' });
   }, [makeRequest]);
 
   const getTemplates = useCallback(() => {
@@ -110,7 +111,17 @@ const useResumeAPI = (): UseResumeAPIReturnType => {
     });
   }, [makeRequest]);
 
-  return { getTemplates, getTemplateById, getResumeUser, updateResume, setTemplate, createResume, getResumeID, getAccountData };
+  const prefillResume = useCallback((content: string, userAccount: object) => {
+    return makeRequest(`${apiConfigURLS.modelsURL}/resume_gpt/`, {
+      method: 'POST',
+      body: JSON.stringify({
+        content: content,
+        user_account: userAccount
+      }),
+    });
+  }, [makeRequest]);
+
+  return { getTemplates, getTemplateById, getResumeUser, updateResume, setTemplate, createResume, getResumeID, getAccountData, prefillResume };
 };
 
 export default useResumeAPI;

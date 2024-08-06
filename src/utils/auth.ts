@@ -29,6 +29,7 @@ export const testGetToken = async (): Promise<string | null> => {
 
     const data = await response.json();
     const newAccessToken = data.access_token;
+    // const email = data.email;
 
     if (newAccessToken) {
       setCookie('access_token', newAccessToken, 1); // Save access token as a cookie

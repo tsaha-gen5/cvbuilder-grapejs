@@ -9,13 +9,34 @@ import useResumeAPI from '@/hooks/useResumeAPI';  // Ensure this path is correct
 import { testGetToken } from '@/utils/auth';
 import { getCookie, setCookie } from '@/utils/cookies';
 
+const LoadingOverlay = () => (
+  <div className="loading-overlay">
+    <p>Loading...</p>
+    <style jsx>{`
+      .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+      }
+    `}</style>
+  </div>
+);
+
 export default function Home() {
   const [editor, setEditor] = useState(null);
   const [token, setToken] = useState('');
   const [templateId, setTemplateId] = useState(null);
   const [resumeId, setResumeId] = useState(null);
   const [isTokenValid, setIsTokenValid] = useState(false);
-  const { getTemplates, getTemplateById, getResumeUser, createResume, updateResume, getAccountData, setTemplate, getResumeID } = useResumeAPI();
+  const [isLoading, setIsLoading] = useState(false);
+  const { getTemplates, getTemplateById, getResumeUser, createResume, updateResume, getAccountData, setTemplate, getResumeID, prefillResume } = useResumeAPI();
 
   function getTokenFromQueryParam() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -41,6 +62,15 @@ export default function Home() {
     setResumeId(resumeId_);
     sessionStorage.setItem('resume_id', resumeId_);
     return true;
+  }
+
+  function updateTemplateIdInURL(templateId) {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('template_id') !== null) {
+      urlParams.set('template_id', templateId);
+      const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
+      window.history.replaceState(null, '', newUrl);
+    }
   }
 
   useEffect(() => {
@@ -190,23 +220,38 @@ export default function Home() {
             document.querySelectorAll('.card-template').forEach(card => {
               card.addEventListener('click', () => {
                 const selectedTemplateId = card.getAttribute('data-templateid'); // Use local variable
+                setIsLoading(true); // Set loading to true
                 setTemplateId(selectedTemplateId); // Update templateId state
                 sessionStorage.setItem('template_id', selectedTemplateId); // Save to sessionStorage
+                updateTemplateIdInURL(selectedTemplateId); // Update URL
                 console.log("line193 : ", selectedTemplateId);
 
                 getTemplateById(selectedTemplateId).then(selectedTemplate => {
                   if (selectedTemplate) {
-                    editor.setComponents(selectedTemplate.content);
-                    editor.setStyle(selectedTemplate.style);
-                    modal.close();
-                    // Reinitialize resumeId when template changes
-                    sessionStorage.removeItem('resume_id');
-                    setResumeId(null);
+                    getAccountData().then(accountData => {
+                      prefillResume(selectedTemplate.content, accountData).then(prefilledContent => {
+                        if (prefilledContent) {
+                          editor.setComponents(prefilledContent.reponse);
+                          console.log("prefilledContent", prefilledContent.reponse);
+                          editor.setStyle(selectedTemplate.style);
+                        }
+                      }).catch(error => console.error('Error pre-filling resume:', error))
+                        .finally(() => setIsLoading(false)); // Set loading to false after the request completes
+                    }).catch(error => {
+                      console.error('Error fetching account data:', error);
+                      setIsLoading(false); // Ensure loading is set to false in case of error
+                    });
                   }
-                }).catch(error => console.error('Error fetching template by ID:', error));
+                  modal.close();
+                }).catch(error => {
+                  console.error('Error fetching template by ID:', error);
+                  setIsLoading(false); // Ensure loading is set to false in case of error
+                });
               });
             });
-          }).catch(error => console.error('Error fetching templates:', error));
+          }).catch(error => {
+            console.error('Error fetching templates:', error);
+          });
         }
       });
 
@@ -266,47 +311,74 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (editor && templateId !== null && resumeId === null) {
-      getTemplateById(templateId).then(selectedTemplate => {
-        if (selectedTemplate) {
-          console.log("selectedTemplate", selectedTemplate);
-          editor.setComponents(selectedTemplate.content);
-          editor.setStyle(selectedTemplate.style);
-        }
-      }).catch(error => console.error('Error fetching template by ID:', error));
+    if (editor) {
+      setIsLoading(true);  // Set loading to true before making the request
+      getAccountData().then(accountData => {
+        if (templateId !== null && resumeId === null) {
+          getTemplateById(templateId).then(selectedTemplate => {
+            if (selectedTemplate) {
+              prefillResume(selectedTemplate.content, accountData).then(prefilledContent => {
+                if (prefilledContent) {
+                  editor.setComponents(prefilledContent.reponse);
+                  console.log("prefilledContent", prefilledContent.reponse);
+                  editor.setStyle(selectedTemplate.style);
+                }
+              }).catch(error => console.error('Error pre-filling resume:', error))
+                .finally(() => setIsLoading(false));  // Set loading to false after the request completes
+            }
+          }).catch(error => {
+            console.error('Error fetching template by ID:', error);
+            setIsLoading(false);  // Ensure loading is set to false in case of error
+          });
+        } else if (templateId === null && resumeId !== null) {
+          sessionStorage.setItem('resume_id', resumeId);
+          getResumeID(resumeId).then(resume => {
+            if (resume) {
+              editor.setComponents(resume.content);
+              editor.setStyle(resume.style);
+            }
+          }).catch(error => console.error('Error fetching resume by ID:', error))
+            .finally(() => setIsLoading(false));  // Set loading to false after the request completes
+        } else if (templateId === null && resumeId === null) {
+          // Choose default template if nothing is present in the header
+          setResumeId(null);
+          getTemplates().then(templates => {
+            const defaultTemplate = templates[0];
+            console.log("defaultTemplate", defaultTemplate);
 
-    } else if (editor && templateId === null && resumeId !== null) {
-      sessionStorage.setItem('resume_id', resumeId);
-      getResumeID(resumeId).then(resume => {
-        if (resume) {
-          editor.setComponents(resume.content);
-          editor.setStyle(resume.style);
+            setTemplateId(defaultTemplate.id);
+            sessionStorage.setItem('template_id', defaultTemplate.id); // Save to sessionStorage
+            getAccountData().then(accountData => {
+              prefillResume(defaultTemplate.content, accountData).then(prefilledContent => {
+                if (prefilledContent) {
+                  editor.setComponents(prefilledContent.reponse);
+                  console.log("prefilledContent", prefilledContent.reponse);
+                  editor.setStyle(defaultTemplate.style);
+                }
+              }).catch(error => console.error('Error pre-filling resume:', error))
+                .finally(() => setIsLoading(false));  // Set loading to false after the request completes
+            }).catch(error => {
+              console.error('Error fetching account data:', error);
+              setIsLoading(false);  // Ensure loading is set to false in case of error
+            });
+          }).catch(error => console.error('Error fetching templates:', error));
         }
-      }).catch(error => console.error('Error fetching resume by ID:', error));
-    } 
-    else if (editor && templateId === null && resumeId === null) {
-      // Choose default template if nothing is present in the header
-      setResumeId(null);
-      getTemplates().then(templates => {
-        const defaultTemplate = templates[0];
-        console.log("defaultTemplate", defaultTemplate);
-
-        setTemplateId(defaultTemplate.id);
-        sessionStorage.setItem('template_id', defaultTemplate.id); // Save to sessionStorage
-        editor.setComponents(defaultTemplate.content);
-        editor.setStyle(defaultTemplate.style);
-      }).catch(error => console.error('Error fetching templates:', error));
+      }).catch(error => {
+        console.error('Error fetching account data:', error);
+        setIsLoading(false);  // Ensure loading is set to false in case of error
+      });
     }
   }, [editor, templateId, resumeId]);
 
   return (
-    <div>
+    <div style={{ position: 'relative' }}>
+      {isLoading && <LoadingOverlay />}
       <div className="panel__top">
         <div className="panel__actions gjs-pn-panel gjs-pn-options gjs-one-bg gjs-two-color">
           <div className="gjs-pn-buttons"></div>
         </div>
       </div>
-      <div id="example-editor" style={{ minHeight: '100vh' }}></div>
+      <div id="example-editor" style={{ minHeight: '100vh', position: 'relative' }}></div>
     </div>
   );
 }
