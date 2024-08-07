@@ -317,18 +317,21 @@ export default function Home() {
         if (templateId !== null && resumeId === null) {
           getTemplateById(templateId).then(selectedTemplate => {
             if (selectedTemplate) {
-              prefillResume(selectedTemplate.content, accountData).then(prefilledContent => {
-                if (prefilledContent) {
-                  editor.setComponents(prefilledContent.reponse);
-                  console.log("prefilledContent", prefilledContent.reponse);
-                  editor.setStyle(selectedTemplate.style);
-                }
-              }).catch(error => console.error('Error pre-filling resume:', error))
-                .finally(() => setIsLoading(false));  // Set loading to false after the request completes
+              // prefillResume(selectedTemplate.content, accountData).then(prefilledContent => {
+              //   if (prefilledContent) {
+              //     editor.setComponents(prefilledContent.reponse);
+              //     console.log("prefilledContent", prefilledContent.reponse);
+              //     editor.setStyle(selectedTemplate.style);
+              //   }
+              // }).catch(error => console.error('Error pre-filling resume:', error))
+              //   .finally(() => setIsLoading(false));  // Set loading to false after the request completes
+              editor.setComponents(selectedTemplate.content);
+              editor.setStyle(selectedTemplate.style);
+              console.log(selectedTemplate.content)
             }
           }).catch(error => {
             console.error('Error fetching template by ID:', error);
-            setIsLoading(false);  // Ensure loading is set to false in case of error
+            setIsLoading(true);  // Ensure loading is set to false in case of error
           });
         } else if (templateId === null && resumeId !== null) {
           sessionStorage.setItem('resume_id', resumeId);
@@ -336,6 +339,8 @@ export default function Home() {
             if (resume) {
               editor.setComponents(resume.content);
               editor.setStyle(resume.style);
+              sessionStorage.setItem('template_id', resume.template_id);
+
             }
           }).catch(error => console.error('Error fetching resume by ID:', error))
             .finally(() => setIsLoading(false));  // Set loading to false after the request completes
@@ -372,7 +377,7 @@ export default function Home() {
 
   return (
     <div style={{ position: 'relative' }}>
-      {isLoading && <LoadingOverlay />}
+      {/* {isLoading && <LoadingOverlay />} */}
       <div className="panel__top">
         <div className="panel__actions gjs-pn-panel gjs-pn-options gjs-one-bg gjs-two-color">
           <div className="gjs-pn-buttons"></div>
