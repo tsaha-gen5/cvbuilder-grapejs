@@ -34,7 +34,7 @@ interface UseResumeAPIReturnType {
   getTemplates: () => Promise<Template[]>;
   getTemplateById: (templateId: number) => Promise<Template>;
   getResumeUser: (userId: number) => Promise<User>;
-  setTemplate: (templateId: number, templateData: Partial<Template>) => Promise<any>;
+  setTemplate: (id: number, content: string, style: string, title: string, description: string, photo: string) => Promise<any>;
   createResume: (userResume: Partial<UserResume>) => Promise<any>;
   updateResume: (userResume: Partial<UserResume>) => Promise<any>;
   getResumeID: (resumeId: number) => Promise<any>;
@@ -82,12 +82,38 @@ const useResumeAPI = (): UseResumeAPIReturnType => {
     return makeRequest(`${apiConfigURLS.apiURL}/resume-template/${templateId}`, { method: 'GET' });
   }, [makeRequest]);
 
-  const setTemplate = useCallback((templateId: number, templateData: Partial<Template>) => {
-    return makeRequest(`${apiConfigURLS.apiURL}/resume-template/${templateId}`, {
+  const setTemplate = useCallback((template_id: number, content: string, style: string, title: string, description: string, photo: string) => {
+    const requestBody = {
+      content,
+      style,
+      title,
+      description,
+      template_id,
+      photo
+    };
+  
+    console.log("Sending update request with:", JSON.stringify(requestBody, null, 2));
+  
+    return makeRequest(`${apiConfigURLS.apiURL}/resume-template`, {
       method: 'PUT',
-      body: JSON.stringify(templateData),
+      body: JSON.stringify(requestBody),
+    }).then(response => {
+      console.log("Response from server:", response);
+      return response;
+    }).catch(async error => {
+      console.error('Request failed:', error);
+      if (error.response) {
+        const errorDetails = await error.response.json();
+        console.error('Error details:', errorDetails);
+        alert(`Failed to update template: ${errorDetails.message}`);
+      } else {
+        alert('Failed to update template. An unexpected error occurred.');
+      }
+      throw error;
     });
   }, [makeRequest]);
+  
+  
 
   const getResumeUser = useCallback((userId: number) => {
     return makeRequest(`${apiConfigURLS.apiURL}/resume/${userId}`, { method: 'GET' });
@@ -112,7 +138,7 @@ const useResumeAPI = (): UseResumeAPIReturnType => {
   }, [makeRequest]);
 
   const prefillResume = useCallback((content: string, userAccount: object) => {
-    return makeRequest(`${apiConfigURLS.modelsURL}/resume_gpt/`, {
+    return makeRequest(`${apiConfigURLS.modelsURL}/parse_account_cv/`, {
       method: 'POST',
       body: JSON.stringify({
         content: content,

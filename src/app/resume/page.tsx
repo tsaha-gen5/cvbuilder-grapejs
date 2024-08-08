@@ -292,15 +292,7 @@ export default function Home() {
                 .catch(error => console.error('Error updating resume:', error));
             } else {
               // Create new resume              
-              createResume({ user_id: userId, content: resumeContent, style: resumeStyle, title: 'New Resume', description: 'A new resume', template_id: _templateId })
-                .then(response => {
-                  alert("Resume created successfully!");
-                  // Save the new resume_id to session storage
-                  const newResumeId = response.id;
-                  sessionStorage.setItem('resume_id', newResumeId);
-                  setResumeId(newResumeId);
-                })
-                .catch(error => console.error('Error creating resume:', error));
+              alert("Veuillez contacter CIP/MANAGER/ADMIN pour que votre CV soit créé.");
             }
           }).catch(error => console.error('Error fetching account data:', error));
         }
@@ -314,70 +306,35 @@ export default function Home() {
     if (editor) {
       setIsLoading(true);  // Set loading to true before making the request
       getAccountData().then(accountData => {
-        if (templateId !== null && resumeId === null) {
-          getTemplateById(templateId).then(selectedTemplate => {
-            if (selectedTemplate) {
-              // prefillResume(selectedTemplate.content, accountData).then(prefilledContent => {
-              //   if (prefilledContent) {
-              //     editor.setComponents(prefilledContent.reponse);
-              //     console.log("prefilledContent", prefilledContent.reponse);
-              //     editor.setStyle(selectedTemplate.style);
-              //   }
-              // }).catch(error => console.error('Error pre-filling resume:', error))
-              //   .finally(() => setIsLoading(false));  // Set loading to false after the request completes
-              editor.setComponents(selectedTemplate.content);
-              editor.setStyle(selectedTemplate.style);
-              console.log(selectedTemplate.content)
-            }
-          }).catch(error => {
-            console.error('Error fetching template by ID:', error);
-            setIsLoading(true);  // Ensure loading is set to false in case of error
-          });
-        } else if (templateId === null && resumeId !== null) {
-          sessionStorage.setItem('resume_id', resumeId);
+        if (templateId === null && resumeId !== null) {
           getResumeID(resumeId).then(resume => {
             if (resume) {
-              editor.setComponents(resume.content);
-              editor.setStyle(resume.style);
-              sessionStorage.setItem('template_id', resume.template_id);
-
-            }
-          }).catch(error => console.error('Error fetching resume by ID:', error))
-            .finally(() => setIsLoading(false));  // Set loading to false after the request completes
-        } else if (templateId === null && resumeId === null) {
-          // Choose default template if nothing is present in the header
-          setResumeId(null);
-          getTemplates().then(templates => {
-            const defaultTemplate = templates[0];
-            console.log("defaultTemplate", defaultTemplate);
-
-            setTemplateId(defaultTemplate.id);
-            sessionStorage.setItem('template_id', defaultTemplate.id); // Save to sessionStorage
-            getAccountData().then(accountData => {
-              prefillResume(defaultTemplate.content, accountData).then(prefilledContent => {
+              prefillResume(resume.content, accountData).then(prefilledContent => {
                 if (prefilledContent) {
                   editor.setComponents(prefilledContent.reponse);
                   console.log("prefilledContent", prefilledContent.reponse);
-                  editor.setStyle(defaultTemplate.style);
+                  editor.setStyle(prefilledContent.style);
                 }
               }).catch(error => console.error('Error pre-filling resume:', error))
                 .finally(() => setIsLoading(false));  // Set loading to false after the request completes
-            }).catch(error => {
-              console.error('Error fetching account data:', error);
-              setIsLoading(false);  // Ensure loading is set to false in case of error
-            });
-          }).catch(error => console.error('Error fetching templates:', error));
+            }
+          }).catch(error => {
+            console.error('Error fetching resume by ID:', error);
+            setIsLoading(true);  // Ensure loading is set to false in case of error
+          });
+        } else if (templateId === null && resumeId === null) {
+          // Choose default template if nothing is present in the header
+          setResumeId(null);
+          setTemplateId(null);
+          alert("Veuillez contacter CIP/MANAGER/ADMIN pour que votre CV soit créé."); 
         }
-      }).catch(error => {
-        console.error('Error fetching account data:', error);
-        setIsLoading(false);  // Ensure loading is set to false in case of error
-      });
+      }).catch(error => console.error('Error fetching account data:', error));
     }
   }, [editor, templateId, resumeId]);
 
   return (
     <div style={{ position: 'relative' }}>
-      {/* {isLoading && <LoadingOverlay />} */}
+      {isLoading && <LoadingOverlay />}
       <div className="panel__top">
         <div className="panel__actions gjs-pn-panel gjs-pn-options gjs-one-bg gjs-two-color">
           <div className="gjs-pn-buttons"></div>
