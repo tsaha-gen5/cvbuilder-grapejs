@@ -8,6 +8,7 @@ import "grapesjs-preset-webpage";
 import useResumeAPI from '@/hooks/useResumeAPI';  // Ensure this path is correct
 import { testGetToken } from '@/utils/auth';
 import { getCookie, setCookie } from '@/utils/cookies';
+import { apiConfigURLS } from '@/utils/vars';
 
 export default function Home() {
   const [editor, setEditor] = useState(null);
@@ -35,14 +36,14 @@ export default function Home() {
     return true;
   }
 
-  function getResumeIdFromQueryParam() {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('resume_id') === null) { return null; }
-    const resumeId_ = urlParams.get('resume_id');
-    setResumeId(resumeId_);
-    sessionStorage.setItem('resume_id', resumeId_);
-    return true;
-  }
+  // function getResumeIdFromQueryParam() {
+  //   const urlParams = new URLSearchParams(window.location.search);
+  //   if (urlParams.get('resume_id') === null) { return null; }
+  //   const resumeId_ = urlParams.get('resume_id');
+  //   setResumeId(resumeId_);
+  //   sessionStorage.setItem('resume_id', resumeId_);
+  //   return true;
+  // }
 
   function updateTemplateIdInURL(templateId) {
     const urlParams = new URLSearchParams(window.location.search);
@@ -64,7 +65,7 @@ export default function Home() {
     setIsTokenValid(true);
 
     getTemplateIdFromQueryParam();
-    getResumeIdFromQueryParam();
+    // getResumeIdFromQueryParam();
   }, [token]);
 
   useEffect(() => {
@@ -111,13 +112,13 @@ export default function Home() {
                   attributes: { class: 'custom-template-selector' },
                   active: false,
                 },
-                {
-                  id: 'export-pdf',
-                  command: 'export-pdf',
-                  label: 'Export PDF',
-                  attributes: { class: 'btn btn-success' },
-                  active: false,
-                },
+                // {
+                //   id: 'export-pdf',
+                //   command: 'export-pdf',
+                //   label: 'Export PDF',
+                //   attributes: { class: 'btn btn-success' },
+                //   active: false,
+                // },
               ]
             },
             {
@@ -152,29 +153,23 @@ export default function Home() {
                   command: 'core:component-delete',
                 },
                 {
-                  id: 'back-button',
-                  className: 'fa fa-arrow-circle-left btn-builder-new',
-                  attributes: { title: 'Back Home' },
-                  command: 'back-home',
+                  id: 'print-pdf',
+                  className: 'fa fa-print btn-builder-new',
+                  attributes: { title: 'Print Pdf' },
+                  command: 'print-pdf',
                 },
                 {
                   id: 'update-template',
-                  className: 'fa fa-pencil',
+                  className: 'fa fa-save btn-builder-new',
                   attributes: { title: 'Update Template' },
                   command: 'update-template',
                 },
-                {
-                  id: 'save-builder',
-                  className: 'fa fa-save btn-builder-new',
-                  attributes: { title: 'Save' },
-                  command: 'save',
-                },
-                {
-                  id: 'save-builder-user',
-                  className: 'fa fa-user-plus',
-                  attributes: { title: 'Save' },
-                  command: 'save-user',
-                },
+                // {
+                //   id: 'save-builder-user',
+                //   className: 'fa fa-user-plus',
+                //   attributes: { title: 'Save' },
+                //   command: 'save-user',
+                // },
                 {
                   id: 'settings',
                   className: 'fa fa-cog',
@@ -234,23 +229,56 @@ export default function Home() {
         }
       });
 
-      e.Commands.add('export-pdf', {
-        run(editor, sender) {
-          const exportHtml = editor.getHtml();
-          const exportCss = editor.getCss();
-          console.log("Storing HTML:", exportHtml);
-          console.log("Storing CSS:", exportCss);
-          sessionStorage.setItem('exportHtml', exportHtml);
-          sessionStorage.setItem('exportCss', exportCss);
-          window.location.href = '/pdf';
-        }
-      });
+      // e.Commands.add('export-pdf', {
+      //   run(editor, sender) {
+      //     const exportHtml = editor.getHtml();
+      //     const exportCss = editor.getCss();
+      //     console.log("Storing HTML:", exportHtml);
+      //     console.log("Storing CSS:", exportCss);
+      //     sessionStorage.setItem('exportHtml', exportHtml);
+      //     sessionStorage.setItem('exportCss', exportCss);
+      //     window.location.href = '/pdf';
+      //   }
+      // });
 
-      e.Commands.add('back-home', {
+      e.Commands.add('print-pdf', {
         run(editor, sender) {
-          window.location.href = '/';
+          const htmlContent = editor.getHtml();
+          const cssContent = editor.getCss();
+      
+          // Create an iframe element
+          const iframe = document.createElement('iframe');
+          iframe.style.position = 'absolute';
+          iframe.style.width = '0';
+          iframe.style.height = '0';
+          iframe.style.border = 'none';
+      
+          document.body.appendChild(iframe);
+      
+          const iframeDoc = iframe.contentWindow.document;
+      
+          // Write the HTML and CSS to the iframe document
+          iframeDoc.open();
+          iframeDoc.write(`
+            <html>
+              <head>
+                <style>${cssContent}</style>
+              </head>
+              <body>
+                ${htmlContent}
+              </body>
+            </html>
+          `);
+          iframeDoc.close();
+      
+          // Wait for the iframe content to load before printing
+          iframe.onload = function() {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+            document.body.removeChild(iframe);
+          };
         }
-      });
+      });  
 
       e.Commands.add('update-template', {
         run(editor, sender) {
@@ -287,115 +315,115 @@ export default function Home() {
               )
               .then(response => {
                 console.log("Template updated successfully:", response);
-                alert("Template updated successfully!");
+                // alert("Template updated successfully!");
               })
               .catch(error => {
                 console.error('Error updating template:', error);
-                alert("Failed to update template. Check the console for details.");
+                // alert("Failed to update template. Check the console for details.");
               });
             } else {
               console.error('Template not found.');
-              alert("Template not found.");
+              // alert("Template not found.");
             }
           }).catch(error => {
             console.error('Error fetching template by ID:', error);
-            alert("Failed to fetch template details.");
+            // alert("Failed to fetch template details.");
           });
         }
       });
       
       
 
-      e.Commands.add('save', {
-        run(editor, sender) {
-          if (sessionStorage.getItem('hasValidRole') === 'false') {
-            alert('You do not have the necessary permissions to save this resume.');
-            return;
-          }
+      // e.Commands.add('save', {
+      //   run(editor, sender) {
+      //     if (sessionStorage.getItem('hasValidRole') === 'false') {
+      //       alert('You do not have the necessary permissions to save this resume.');
+      //       return;
+      //     }
 
-          const resumeContent = editor.getHtml();  // Adjusted to get HTML content
-          const resumeStyle = editor.getCss();  // Adjusted to get CSS style
+      //     const resumeContent = editor.getHtml();  // Adjusted to get HTML content
+      //     const resumeStyle = editor.getCss();  // Adjusted to get CSS style
 
-          getAccountData().then(accountData => {
-            const userId = accountData.user_id;
-            const savedResumeId = sessionStorage.getItem('resume_id');
-            const _templateId = sessionStorage.getItem('template_id');
-            console.log("templateId 234", _templateId);
+      //     getAccountData().then(accountData => {
+      //       const userId = accountData.user_id;
+      //       const savedResumeId = sessionStorage.getItem('resume_id');
+      //       const _templateId = sessionStorage.getItem('template_id');
+      //       console.log("templateId 234", _templateId);
             
-            if (savedResumeId) {
-              // Update existing resume
-              console.log("Line 244", savedResumeId);
-              updateResume({ content: resumeContent, style: resumeStyle, title: 'Updated Resume', description: 'Updated resume', resume_id: savedResumeId })
-                .then(() => alert("Resume updated successfully!"))
-                .catch(error => console.error('Error updating resume:', error));
-            } else {
-              // Create new resume              
-              createResume({ user_id: userId, content: resumeContent, style: resumeStyle, title: 'New Resume', description: 'A new resume', template_id: _templateId })
-                .then(response => {
-                  alert("Resume created successfully!");
-                  // Save the new resume_id to session storage
-                  const newResumeId = response.id;
-                  sessionStorage.setItem('resume_id', null);
-                  setResumeId(newResumeId);
-                })
-                .catch(error => console.error('Error creating resume:', error));
-            }
-          }).catch(error => console.error('Error fetching account data:', error));           
-        }
-      });
+      //       if (savedResumeId) {
+      //         // Update existing resume
+      //         console.log("Line 244", savedResumeId);
+      //         updateResume({ content: resumeContent, style: resumeStyle, title: 'Updated Resume', description: 'Updated resume', resume_id: savedResumeId })
+      //           .then(() => alert("Resume updated successfully!"))
+      //           .catch(error => console.error('Error updating resume:', error));
+      //       } else {
+      //         // Create new resume              
+      //         createResume({ user_id: userId, content: resumeContent, style: resumeStyle, title: 'New Resume', description: 'A new resume', template_id: _templateId })
+      //           .then(response => {
+      //             alert("Resume created successfully!");
+      //             // Save the new resume_id to session storage
+      //             const newResumeId = response.id;
+      //             sessionStorage.setItem('resume_id', null);
+      //             setResumeId(newResumeId);
+      //           })
+      //           .catch(error => console.error('Error creating resume:', error));
+      //       }
+      //     }).catch(error => console.error('Error fetching account data:', error));           
+      //   }
+      // });
 
-      e.Commands.add('save-user', {
-        run(editor, sender) {
-          if (sessionStorage.getItem('hasValidRole') === 'false') {
-            alert('You do not have the necessary permissions to save this resume.');
-            return;
-          }
+      // e.Commands.add('save-user', {
+      //   run(editor, sender) {
+      //     if (sessionStorage.getItem('hasValidRole') === 'false') {
+      //       alert('You do not have the necessary permissions to save this resume.');
+      //       return;
+      //     }
 
-          const modal = editor.Modal;
-          modal.setTitle('Enter Candidate ID');
-          modal.setContent(`
-            <div class="modal-container">
-              <input type="text" id="candidate-id" placeholder="Enter Candidate ID" />
-              <button id="save-candidate-id">Save</button>
-            </div>
-          `);
-          modal.open();
+      //     const modal = editor.Modal;
+      //     modal.setTitle('Enter Candidate ID');
+      //     modal.setContent(`
+      //       <div class="modal-container">
+      //         <input type="text" id="candidate-id" placeholder="Enter Candidate ID" />
+      //         <button id="save-candidate-id">Save</button>
+      //       </div>
+      //     `);
+      //     modal.open();
 
-          document.getElementById('save-candidate-id').addEventListener('click', () => {
-            const candidateId = document.getElementById('candidate-id').value;
-            if (candidateId) {
-              modal.close();
-              const resumeContent = editor.getHtml();  // Adjusted to get HTML content
-              const resumeStyle = editor.getCss();  // Adjusted to get CSS style
+      //     document.getElementById('save-candidate-id').addEventListener('click', () => {
+      //       const candidateId = document.getElementById('candidate-id').value;
+      //       if (candidateId) {
+      //         modal.close();
+      //         const resumeContent = editor.getHtml();  // Adjusted to get HTML content
+      //         const resumeStyle = editor.getCss();  // Adjusted to get CSS style
 
-              const savedResumeId = sessionStorage.getItem('resume_id');
-              const _templateId = sessionStorage.getItem('template_id');
-              console.log("templateId 234", _templateId);
+      //         const savedResumeId = sessionStorage.getItem('resume_id');
+      //         const _templateId = sessionStorage.getItem('template_id');
+      //         console.log("templateId 234", _templateId);
               
-              if (savedResumeId) {
-                // Update existing resume
-                console.log("Line 244", savedResumeId);
-                updateResume({ content: resumeContent, style: resumeStyle, title: 'Updated Resume', description: `Updated resume for user ${userId}`, resume_id: savedResumeId })
-                  .then(() => alert("Resume updated successfully!"))
-                  .catch(error => console.error('Error updating resume:', error));
-              } else {
-                // Create new resume              
-                createResume({ user_id: candidateId, content: resumeContent, style: resumeStyle, title: 'New Resume', description: `A new resume for user ${userId}`, template_id: _templateId})
-                  .then(response => {
-                    alert("Resume created successfully!");
-                    // Save the new resume_id to session storage
-                    const newResumeId = response.id;
-                    sessionStorage.setItem('resume_id', newResumeId);
-                    setResumeId(newResumeId);
-                  })
-                  .catch(error => console.error('Error creating resume:', error));
-              }
-            } else {
-              alert('Please enter a valid candidate ID.');
-            }
-          });
-        }
-      });
+      //         if (savedResumeId) {
+      //           // Update existing resume
+      //           console.log("Line 244", savedResumeId);
+      //           updateResume({ content: resumeContent, style: resumeStyle, title: 'Updated Resume', description: `Updated resume for user ${userId}`, resume_id: savedResumeId })
+      //             .then(() => alert("Resume updated successfully!"))
+      //             .catch(error => console.error('Error updating resume:', error));
+      //         } else {
+      //           // Create new resume              
+      //           createResume({ user_id: candidateId, content: resumeContent, style: resumeStyle, title: 'New Resume', description: `A new resume for user ${userId}`, template_id: _templateId})
+      //             .then(response => {
+      //               alert("Resume created successfully!");
+      //               // Save the new resume_id to session storage
+      //               const newResumeId = response.id;
+      //               sessionStorage.setItem('resume_id', newResumeId);
+      //               setResumeId(newResumeId);
+      //             })
+      //             .catch(error => console.error('Error creating resume:', error));
+      //         }
+      //       } else {
+      //         alert('Please enter a valid candidate ID.');
+      //       }
+      //     });
+      //   }
+      // });
 
       setEditor(e);
     }

@@ -45,16 +45,6 @@ export default function Home() {
     return token;
   }
 
-  function getTemplateIdFromQueryParam() {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('template_id') === null) { return null; }
-    const templateId_ = urlParams.get('template_id');
-    setTemplateId(templateId_);
-    sessionStorage.setItem('template_id', templateId_);
-    console.log("templateId", templateId_);
-    return true;
-  }
-
   function getResumeIdFromQueryParam() {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('resume_id') === null) { return null; }
@@ -62,15 +52,6 @@ export default function Home() {
     setResumeId(resumeId_);
     sessionStorage.setItem('resume_id', resumeId_);
     return true;
-  }
-
-  function updateTemplateIdInURL(templateId) {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('template_id') !== null) {
-      urlParams.set('template_id', templateId);
-      const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
-      window.history.replaceState(null, '', newUrl);
-    }
   }
 
   useEffect(() => {
@@ -82,8 +63,6 @@ export default function Home() {
       setToken(tokenDetect);
     }
     setIsTokenValid(true);
-
-    getTemplateIdFromQueryParam();
     getResumeIdFromQueryParam();
 
   }, [token]);
@@ -126,13 +105,6 @@ export default function Home() {
               el: '.panel__top',
               buttons: [
                 {
-                  id: 'template-selector',
-                  command: 'select-template',
-                  label: 'Select Template',
-                  attributes: { class: 'custom-template-selector' },
-                  active: false,
-                },
-                {
                   id: 'export-pdf',
                   command: 'export-pdf',
                   label: 'Export PDF',
@@ -173,10 +145,10 @@ export default function Home() {
                   command: 'core:component-delete',
                 },
                 {
-                  id: 'back-button',
-                  className: 'fa fa-arrow-circle-left btn-builder-new',
-                  attributes: { title: 'Back Home' },
-                  command: 'back-home',
+                  id: 'print-pdf',
+                  className: 'fa fa-print btn-builder-new',
+                  attributes: { title: 'Print Pdf' },
+                  command: 'print-pdf',
                 },
                 {
                   id: 'save-builder',
@@ -195,66 +167,6 @@ export default function Home() {
         }
       });
 
-      e.Commands.add('select-template', {
-        run(editor, sender) {
-          const modal = editor.Modal;
-          modal.setTitle('Select a Template');
-
-          getTemplates().then(templates => {
-            modal.setContent(`
-              <div class="modal-row">
-                ${templates.map(template => `
-                  <div class="modal-column">
-                    <div class="card card-template" data-templateid="${template.id}">
-                      <img src="${template.photo}" alt="${template.title}" />
-                      <div class="modal-container">
-                        <h4><b>${template.title}</b></h4>
-                      </div>
-                    </div>
-                  </div>
-                `).join('')}
-              </div>
-            `);
-            modal.open();
-
-            document.querySelectorAll('.card-template').forEach(card => {
-              card.addEventListener('click', () => {
-                const selectedTemplateId = card.getAttribute('data-templateid'); // Use local variable
-                setIsLoading(true); // Set loading to true
-                setTemplateId(selectedTemplateId); // Update templateId state
-                sessionStorage.setItem('template_id', selectedTemplateId); // Save to sessionStorage
-                updateTemplateIdInURL(selectedTemplateId); // Update URL
-                console.log("line193 : ", selectedTemplateId);
-
-                getTemplateById(selectedTemplateId).then(selectedTemplate => {
-                  if (selectedTemplate) {
-                    getAccountData().then(accountData => {
-                      prefillResume(selectedTemplate.content, accountData).then(prefilledContent => {
-                        if (prefilledContent) {
-                          editor.setComponents(prefilledContent.reponse);
-                          console.log("prefilledContent", prefilledContent.reponse);
-                          editor.setStyle(selectedTemplate.style);
-                        }
-                      }).catch(error => console.error('Error pre-filling resume:', error))
-                        .finally(() => setIsLoading(false)); // Set loading to false after the request completes
-                    }).catch(error => {
-                      console.error('Error fetching account data:', error);
-                      setIsLoading(false); // Ensure loading is set to false in case of error
-                    });
-                  }
-                  modal.close();
-                }).catch(error => {
-                  console.error('Error fetching template by ID:', error);
-                  setIsLoading(false); // Ensure loading is set to false in case of error
-                });
-              });
-            });
-          }).catch(error => {
-            console.error('Error fetching templates:', error);
-          });
-        }
-      });
-
       e.Commands.add('export-pdf', {
         run(editor, sender) {
           const exportHtml = editor.getHtml();
@@ -267,11 +179,46 @@ export default function Home() {
         }
       });
 
-      e.Commands.add('back-home', {
+      e.Commands.add('print-pdf', {
         run(editor, sender) {
-          window.location.href = '/';
+          const htmlContent = editor.getHtml();
+          const cssContent = editor.getCss();
+      
+          // Create an iframe element
+          const iframe = document.createElement('iframe');
+          iframe.style.position = 'absolute';
+          iframe.style.width = '0';
+          iframe.style.height = '0';
+          iframe.style.border = 'none';
+      
+          document.body.appendChild(iframe);
+      
+          const iframeDoc = iframe.contentWindow.document;
+      
+          // Write the HTML and CSS to the iframe document
+          iframeDoc.open();
+          iframeDoc.write(`
+            <html>
+              <head>
+                <style>${cssContent}</style>
+              </head>
+              <body>
+                ${htmlContent}
+              </body>
+            </html>
+          `);
+          iframeDoc.close();
+      
+          // Wait for the iframe content to load before printing
+          iframe.onload = function() {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+            document.body.removeChild(iframe);
+          };
         }
-      });
+      });      
+      
+      
 
       e.Commands.add('save', {
         run(editor, sender) {
@@ -286,7 +233,6 @@ export default function Home() {
             
             if (savedResumeId) {
               // Update existing resume
-              console.log("Line 244",savedResumeId);
               updateResume({ content: resumeContent, style: resumeStyle, title: 'Updated Resume', description: 'Updated resume', resume_id: savedResumeId })
                 .then(() => alert("Resume updated successfully!"))
                 .catch(error => console.error('Error updating resume:', error));
@@ -304,16 +250,22 @@ export default function Home() {
 
   useEffect(() => {
     if (editor) {
-      setIsLoading(true);  // Set loading to true before making the request
+      setIsLoading(false);  // Set loading to true before making the request
       getAccountData().then(accountData => {
-        if (templateId === null && resumeId !== null) {
+        if (resumeId !== null) {
           getResumeID(resumeId).then(resume => {
             if (resume) {
+              sessionStorage.setItem('resume_id', resumeId);
+              sessionStorage.setItem('template_id', resume.template_id);
+              // console.log(resume.content);
+              // console.log(accountData);
+              // editor.setComponents(resume.content)
+              // editor.setStyle(resume.style);
               prefillResume(resume.content, accountData).then(prefilledContent => {
                 if (prefilledContent) {
                   editor.setComponents(prefilledContent.reponse);
                   console.log("prefilledContent", prefilledContent.reponse);
-                  editor.setStyle(prefilledContent.style);
+                  editor.setStyle(resume.style);
                 }
               }).catch(error => console.error('Error pre-filling resume:', error))
                 .finally(() => setIsLoading(false));  // Set loading to false after the request completes
