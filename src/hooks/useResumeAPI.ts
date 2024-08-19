@@ -39,7 +39,8 @@ interface UseResumeAPIReturnType {
   updateResume: (userResume: Partial<UserResume>) => Promise<any>;
   getResumeID: (resumeId: number) => Promise<any>;
   getAccountData: () => Promise<any>;
-  prefillResume: (content: string, userAccount: object) => Promise<any>;
+  getAccountResumeData: () => Promise<any>;
+  prefillResume: (content: string, userAccount: object, accountResumeData: object) => Promise<any>;
 }
 
 const useResumeAPI = (): UseResumeAPIReturnType => {
@@ -72,6 +73,10 @@ const useResumeAPI = (): UseResumeAPIReturnType => {
 
   const getAccountData = useCallback(() => {
     return makeRequest(`${apiConfigURLS.apiURL}/account/`, { method: 'GET' });
+  }, [makeRequest]);
+
+  const getAccountResumeData = useCallback(() => {
+    return makeRequest(`${apiConfigURLS.apiURL}/account/resume-data`, { method: 'GET' });
   }, [makeRequest]);
 
   const getTemplates = useCallback(() => {
@@ -137,17 +142,74 @@ const useResumeAPI = (): UseResumeAPIReturnType => {
     });
   }, [makeRequest]);
 
-  const prefillResume = useCallback((content: string, userAccount: object) => {
-    return makeRequest(`${apiConfigURLS.modelsURL}/parse_account_cv/`, {
-      method: 'POST',
-      body: JSON.stringify({
-        content: content,
-        user_account: userAccount
-      }),
-    });
-  }, [makeRequest]);
+// Function to flatten a nested object with the desired key format
+const flattenObject = (obj: any, prefix = ''): { [key: string]: any } => {
+  return Object.keys(obj).reduce((acc: { [key: string]: any }, k: string) => {
+    const pre = prefix.length ? prefix + '_' : '';
+    if (typeof obj[k] === 'object' && obj[k] !== null && !Array.isArray(obj[k])) {
+      // Handle nested objects
+      Object.assign(acc, flattenObject(obj[k], pre + k));
+    } else if (Array.isArray(obj[k])) {
+      // Handle arrays
+      obj[k].forEach((item: any, index: number) => {
+        if (typeof item === 'object' && item !== null) {
+          Object.assign(acc, flattenObject(item, `${pre}${k}_${index}`));
+        } else {
+          acc[`${pre}${k}_${index}`] = item;
+        }
+      });
+    } else {
+      // Handle primitive values
+      acc[pre + k] = obj[k];
+    }
+    return acc;
+  }, {});
+};
 
-  return { getTemplates, getTemplateById, getResumeUser, updateResume, setTemplate, createResume, getResumeID, getAccountData, prefillResume };
+    // Function to replace placeholders using a flattened object
+  const replacePlaceholders = (
+    content: string,
+    flattenedData: { [key: string]: any }
+  ): string => {
+    return content.replace(/{(\w+(\.\w+|\[\d+\])*)}/g, (match, key) => {
+      const lowerCaseKey = key.toLowerCase();
+      return flattenedData[lowerCaseKey] !== undefined ? flattenedData[lowerCaseKey] : match;
+    });
+  };
+
+  // Updated prefillResume function using flattening and placeholder replacement
+  const prefillResume = useCallback(
+    (
+      content: string,
+      userAccount: { [key: string]: any },
+      accountResumeData: { [key: string]: any }
+    ) => {
+      try {
+        // Flatten both userAccount and accountResumeData
+        const flattenedUserAccount = flattenObject(userAccount);
+        const flattenedAccountResumeData = flattenObject(accountResumeData);
+
+        // Merge both flattened objects, giving precedence to userAccount
+        const mergedData = { ...flattenedAccountResumeData, ...flattenedUserAccount };
+
+        // Replace placeholders in the content
+        const updatedContent = replacePlaceholders(content, mergedData);
+
+        return Promise.resolve({ reponse: updatedContent });
+      } catch (error) {
+        console.error('Error in prefillResume:', error);
+        return Promise.reject(error);
+      }
+    },
+    []
+  );
+
+
+
+
+  return { getTemplates, getTemplateById, getResumeUser, updateResume,
+           setTemplate, createResume, getResumeID, getAccountData,
+           getAccountResumeData, prefillResume };
 };
 
 export default useResumeAPI;

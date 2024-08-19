@@ -8,6 +8,8 @@ import "grapesjs-preset-webpage";
 import useResumeAPI from '@/hooks/useResumeAPI';  // Ensure this path is correct
 import { testGetToken } from '@/utils/auth';
 import { getCookie, setCookie } from '@/utils/cookies';
+import PlaceholderParser from '@/utils/placeholderParser';
+
 
 const LoadingOverlay = () => (
   <div className="loading-overlay">
@@ -36,7 +38,7 @@ export default function Home() {
   const [resumeId, setResumeId] = useState(null);
   const [isTokenValid, setIsTokenValid] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { getTemplates, getTemplateById, getResumeUser, createResume, updateResume, getAccountData, setTemplate, getResumeID, prefillResume } = useResumeAPI();
+  const {updateResume, getAccountData, getAccountResumeData, getResumeID, prefillResume } = useResumeAPI();
 
   function getTokenFromQueryParam() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -252,34 +254,37 @@ export default function Home() {
     if (editor) {
       setIsLoading(false);  // Set loading to true before making the request
       getAccountData().then(accountData => {
-        if (resumeId !== null) {
-          getResumeID(resumeId).then(resume => {
-            if (resume) {
-              sessionStorage.setItem('resume_id', resumeId);
-              sessionStorage.setItem('template_id', resume.template_id);
-              // console.log(resume.content);
-              // console.log(accountData);
-              // editor.setComponents(resume.content)
-              // editor.setStyle(resume.style);
-              prefillResume(resume.content, accountData).then(prefilledContent => {
-                if (prefilledContent) {
-                  editor.setComponents(prefilledContent.reponse);
-                  console.log("prefilledContent", prefilledContent.reponse);
-                  editor.setStyle(resume.style);
-                }
-              }).catch(error => console.error('Error pre-filling resume:', error))
-                .finally(() => setIsLoading(false));  // Set loading to false after the request completes
-            }
-          }).catch(error => {
-            console.error('Error fetching resume by ID:', error);
-            setIsLoading(true);  // Ensure loading is set to false in case of error
-          });
+        getAccountResumeData().then(accountResumeData => {
+                 
+          if (resumeId !== null) {
+            getResumeID(resumeId).then(resume => {
+              if (resume) {
+                sessionStorage.setItem('resume_id', resumeId);
+                sessionStorage.setItem('template_id', resume.template_id);
+                // console.log(resume.content);
+                // console.log(accountData);
+                // console.log(accountResumeData);
+
+                prefillResume(resume.content, accountData, accountResumeData).then(prefilledContent => {
+                  if (prefilledContent) {
+                    editor.setComponents(prefilledContent.reponse);
+                    // console.log("prefilledContent", prefilledContent.reponse);
+                    editor.setStyle(resume.style);
+                  }
+                }).catch(error => console.error('Error pre-filling resume:', error))
+                  .finally(() => setIsLoading(false));  // Set loading to false after the request completes
+              }
+            }).catch(error => {
+              console.error('Error fetching resume by ID:', error);
+              setIsLoading(true);  // Ensure loading is set to false in case of error
+            });
         } else if (templateId === null && resumeId === null) {
           // Choose default template if nothing is present in the header
           setResumeId(null);
           setTemplateId(null);
           alert("Veuillez contacter CIP/MANAGER/ADMIN pour que votre CV soit créé."); 
-        }
+        } 
+        }).catch(error => console.error('Error fetching account resume data:', error))
       }).catch(error => console.error('Error fetching account data:', error));
     }
   }, [editor, templateId, resumeId]);
